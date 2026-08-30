@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "baseUrl": "./",
-    "paths": {
-      "~/*": ["app/*"]
-    }
+    "module": "node16"
   },
   "typeAcquisition": {
     "include": ["jest"]

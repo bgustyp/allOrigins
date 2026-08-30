@@ -1,3 +1,4 @@
-module.exports = {
-    coveragePathIgnorePatterns: ["/node_modules/", "/vendor/"]
+export default {
+  collectCoverageFrom: ['app/**/*.js'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/vendor/'],
 }

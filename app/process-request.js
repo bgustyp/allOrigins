@@ -1,12 +1,12 @@
-const getPage = require('./get-page')
-const getLogger = require('./logger')
+import getPage from './get-page.js'
+import getLogger from './logger.js'
 
 const logger = getLogger(process.env.DEBUG && process.env.DEBUG !== '0')
 
 const DEFAULT_CACHE_TIME = 60 * 60 // 60 minutes
 const MIN_CACHE_TIME = 5 * 60 // 5 minutes
 
-module.exports = processRequest
+export default processRequest
 
 async function processRequest(req, res) {
   const startTime = new Date()
@@ -60,7 +60,7 @@ async function createResponse(page, params, res, startTime) {
       ? 0
       : Math.max(
           MIN_CACHE_TIME,
-          Number(params.cacheMaxAge) || DEFAULT_CACHE_TIME
+          Number(params.cacheMaxAge) || DEFAULT_CACHE_TIME,
         )
 
     res.set('Cache-control', `public, max-age=${maxAge}, stale-if-error=600`)
@@ -76,7 +76,7 @@ async function createResponse(page, params, res, startTime) {
 
   res.set(
     'Content-Type',
-    `application/json; charset=${params.charset || 'utf-8'}`
+    `application/json; charset=${params.charset || 'utf-8'}`,
   )
 
   if (page.status) {

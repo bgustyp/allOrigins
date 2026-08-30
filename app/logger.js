@@ -1,4 +1,4 @@
-module.exports = function (debug = false) {
+export default function (debug = false) {
   const logger = debug ? defaultLogger() : false
 
   return {
@@ -7,8 +7,6 @@ module.exports = function (debug = false) {
       if (!this.logger) return false
       try {
         const [to, from] = parseURLs(data)
-
-        delete data.headers['host']
 
         return this.logger.log(data, {
           meta: {

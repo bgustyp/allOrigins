@@ -1,7 +1,8 @@
-const request = require('supertest')
-const nock = require('nock')
-const app = require('../app.js')
-const getLogger = require('../app/logger.js')
+import { jest } from '@jest/globals'
+import request from 'supertest'
+import nock from 'nock'
+import app from '../app.js'
+import getLogger from '../app/logger.js'
 
 beforeAll(() => {
   nock('http://example.com')
@@ -30,8 +31,34 @@ beforeAll(() => {
     .head('/test.html')
     .reply(204, undefined, {
       'Content-Type': 'text/html',
-      'Content-Length': 'invalid',
     })
+
+  nock('http://redirect.test')
+    .persist(true)
+    .get('/page.html')
+    .reply(
+      200,
+      '<html><script>if(true){window.location = "https://evil.com"}</script><body>player</body></html>',
+      { 'Content-Type': 'text/html' },
+    )
+
+  nock('http://iframe.test')
+    .persist(true)
+    .get('/wrap.html')
+    .reply(
+      200,
+      '<html><head><script>if(window.self===window.top){window.location.replace("https://lk21.de")}window.location.replace("https://google.com")</script></head><body><iframe src="https://abyssplayer.com/x"></iframe><script src="/script.min.js"></script></body></html>',
+      { 'Content-Type': 'text/html' },
+    )
+
+  nock('http://ads.test')
+    .persist(true)
+    .get('/page.html')
+    .reply(
+      200,
+      '<html><head><style>.embed-container,a#uyeouyeo{top:0}</style></head><body><a id="uyeouyeo" href="https://yellowishgather.com/xxx" target="_blank"><div class="message-box"><p>Klik untuk main</p></div></a><div class="embed-container"><iframe src="https://abyssplayer.com/x"></iframe></div><script src="/script.min.js?v4"></script><script async src="https://www.googletagmanager.com/gtag/js?id=X"></script><script>(function(){function c(){var b=a.contentDocument;var d=b.createElement("script");d.innerHTML="test";b.getElementsByTagName("head")[0].appendChild(d)}})();</script></body></html>',
+      { 'Content-Type': 'text/html' },
+    )
 })
 
 test('global.AO_VERSION is defined', () => {
@@ -51,7 +78,7 @@ describe('Logger', () => {
           connection: 'close',
         },
         status: { response_time: 3, url: 'http://example.com/test.html' },
-      })
+      }),
     ).toBeFalsy()
     expect(logger.logger.log).toBeUndefined()
   })
@@ -73,9 +100,9 @@ describe('Logger', () => {
           connection: 'close',
         },
         status: { response_time: 3, url: 'http://example.com/test.html' },
-      })
+      }),
     ).not.toBeFalsy()
-    expect(logger.logger.log).toBeCalled()
+    expect(logger.logger.log).toHaveBeenCalled()
   })
 })
 
@@ -101,7 +128,7 @@ test('Test POST to /get endpoint', async () => {
 
 test('Test /get request to not found url', async () => {
   const res = await request(app).get(
-    '/get?url=http://example.com/not-found.html'
+    '/get?url=http://example.com/not-found.html',
   )
 
   expect(res.statusCode).toBe(200)
@@ -124,7 +151,7 @@ test('Test /raw request', async () => {
 
 test('Test /get request with charset param', async () => {
   const res = await request(app).get(
-    '/get?url=http://example.com/test.txt&charset=utf-8'
+    '/get?url=http://example.com/test.txt&charset=utf-8',
   )
 
   expect(res.statusCode).toBe(200)
@@ -135,7 +162,7 @@ test('Test /get request with charset param', async () => {
 
 test('Test /get request with charset param (CN)', async () => {
   const res = await request(app).get(
-    '/get?url=http://example.com/cn.txt&charset=gbk'
+    '/get?url=http://example.com/cn.txt&charset=gbk',
   )
 
   expect(res.statusCode).toBe(200)
@@ -146,7 +173,7 @@ test('Test /get request with charset param (CN)', async () => {
 
 test('Test /get request with callback param', async () => {
   const res = await request(app).get(
-    '/get?url=http://example.com/test.txt&callback=myFunc'
+    '/get?url=http://example.com/test.txt&callback=myFunc',
   )
 
   expect(res.statusCode).toBe(200)
@@ -175,7 +202,7 @@ test('Test OPTIONS request', async () => {
   // 'cause we accept requests from allOrigins :D
   expect(res.headers['access-control-allow-origin']).toBe(RANDOM_ORIGIN)
   expect(res.headers['access-control-allow-methods']).toBe(
-    'OPTIONS, GET, POST, PATCH, PUT, DELETE'
+    'OPTIONS, GET, POST, PATCH, PUT, DELETE',
   )
 
   expect(res.body.contents).toBeUndefined()
@@ -183,12 +210,12 @@ test('Test OPTIONS request', async () => {
 
 test('with disableCache', async () => {
   const res = await request(app).get(
-    `/get?url=http://example.com/test.html&disableCache=true`
+    `/get?url=http://example.com/test.html&disableCache=true`,
   )
 
   expect(res.statusCode).toBe(200)
   expect(res.headers['cache-control']).toBe(
-    `public, max-age=0, stale-if-error=600`
+    `public, max-age=0, stale-if-error=600`,
   )
 
   expect(res.body.contents).toBeDefined()
@@ -198,12 +225,12 @@ test('with disableCache', async () => {
 
 test('with disableCache and valid cacheMaxAge', async () => {
   const res = await request(app).get(
-    `/get?url=http://example.com/test.html&disableCache=true&cacheMaxAge=1000`
+    `/get?url=http://example.com/test.html&disableCache=true&cacheMaxAge=1000`,
   )
 
   expect(res.statusCode).toBe(200)
   expect(res.headers['cache-control']).toBe(
-    `public, max-age=0, stale-if-error=600`
+    `public, max-age=0, stale-if-error=600`,
   )
 
   expect(res.body.contents).toBeDefined()
@@ -219,12 +246,12 @@ describe.each([
 ])('%s', (_, param, expected) => {
   test('Test /raw request', async () => {
     const res = await request(app).get(
-      `/raw?url=http://example.com/test.html&cacheMaxAge=${param}`
+      `/raw?url=http://example.com/test.html&cacheMaxAge=${param}`,
     )
 
     expect(res.statusCode).toBe(200)
     expect(res.headers['cache-control']).toBe(
-      `public, max-age=${expected}, stale-if-error=600`
+      `public, max-age=${expected}, stale-if-error=600`,
     )
 
     expect(res.body.contents).toBeUndefined()
@@ -234,12 +261,12 @@ describe.each([
 
   test('Test /get request', async () => {
     const res = await request(app).get(
-      `/get?url=http://example.com/test.html&cacheMaxAge=${param}`
+      `/get?url=http://example.com/test.html&cacheMaxAge=${param}`,
     )
 
     expect(res.statusCode).toBe(200)
     expect(res.headers['cache-control']).toBe(
-      `public, max-age=${expected}, stale-if-error=600`
+      `public, max-age=${expected}, stale-if-error=600`,
     )
 
     expect(res.body.contents).toBeDefined()
@@ -249,7 +276,7 @@ describe.each([
 
   test('Test POST to /json endpoint', async () => {
     const res = await request(app).post(
-      `/json?url=http://example.com/test.html&cacheMaxAge=${param}`
+      `/json?url=http://example.com/test.html&cacheMaxAge=${param}`,
     )
 
     expect(res.statusCode).toBe(200)
@@ -258,5 +285,83 @@ describe.each([
     expect(res.body.contents).toBeDefined()
     expect(res.body.contents).toBe("Hi, allOrigins! It's a POST!")
     expect(res.body.status).toBeDefined()
+  })
+})
+
+describe('/embed', () => {
+  test('strips window.location redirect from HTML', async () => {
+    const res = await request(app).get(
+      '/embed?url=http://redirect.test/page.html',
+    )
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toMatch('text/html')
+    expect(res.text).toContain('player')
+    expect(res.text).not.toContain('window.location = "https://evil.com"')
+    expect(res.text).toContain('redirect stripped')
+  })
+
+  test('passes through non-HTML content unchanged', async () => {
+    const res = await request(app).get('/embed?url=http://example.com/test.txt')
+
+    expect(res.statusCode).toBe(200)
+    expect(res.text).toBe('Hello, allOrigins! 👽')
+  })
+
+  test('strips location.replace and neutralizes iframe-buster', async () => {
+    const res = await request(app).get(
+      '/embed?url=http://iframe.test/wrap.html',
+    )
+
+    expect(res.statusCode).toBe(200)
+    expect(res.text).not.toContain('window.location.replace')
+    expect(res.text).toContain('window.self !== window.self')
+    expect(res.text).toContain('redirect stripped')
+  })
+
+  test('rewrites absolute iframe src to /embed proxy', async () => {
+    const res = await request(app).get(
+      '/embed?url=http://iframe.test/wrap.html',
+    )
+
+    expect(res.statusCode).toBe(200)
+    expect(res.text).toContain('/embed?url=https%3A%2F%2Fabyssplayer.com%2Fx')
+    expect(res.text).not.toContain('src="https://abyssplayer.com')
+  })
+
+  test('rewrites relative script src to absolute', async () => {
+    const res = await request(app).get(
+      '/embed?url=http://iframe.test/wrap.html',
+    )
+
+    expect(res.statusCode).toBe(200)
+    expect(res.text).toContain('src="http://iframe.test/script.min.js"')
+  })
+
+  test('noads strips ad overlay, ad scripts, and tracking', async () => {
+    const res = await request(app).get(
+      '/embed?url=http://ads.test/page.html&noads=1',
+    )
+
+    expect(res.statusCode).toBe(200)
+    // Ad popup overlay removed
+    expect(res.text).not.toContain('yellowishgather')
+    expect(res.text).not.toContain('Klik untuk main')
+    // Ad scripts removed
+    expect(res.text).not.toContain('script.min.js')
+    expect(res.text).not.toContain('googletagmanager')
+    // Cloudflare challenge script removed
+    expect(res.text).not.toContain('contentDocument')
+    // Player iframe still present
+    expect(res.text).toContain('embed-container')
+    expect(res.text).toContain('/embed?url=')
+  })
+
+  test('noads does not strip when param absent', async () => {
+    const res = await request(app).get('/embed?url=http://ads.test/page.html')
+
+    expect(res.statusCode).toBe(200)
+    expect(res.text).toContain('yellowishgather')
+    expect(res.text).toContain('script.min.js')
   })
 })
