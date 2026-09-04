@@ -116,6 +116,23 @@ test('Test basic /get request', async () => {
   expect(res.body.status.content_length).toBe(15)
 })
 
+test('in-process cache serves repeated requests without hitting upstream', async () => {
+  // One-shot nock: only replies once. Second request must come from cache.
+  const scope = nock('http://cache.test')
+    .get('/page.html')
+    .reply(200, 'cached!', { 'Content-Type': 'text/plain' })
+
+  const res1 = await request(app).get('/get?url=http://cache.test/page.html')
+  expect(res1.statusCode).toBe(200)
+  expect(res1.body.contents).toBe('cached!')
+  expect(scope.isDone()).toBe(true) // interceptor consumed by first request
+
+  // If cache is broken, nock has no interceptor → got errors → 404 in status
+  const res2 = await request(app).get('/get?url=http://cache.test/page.html')
+  expect(res2.statusCode).toBe(200)
+  expect(res2.body.contents).toBe('cached!')
+})
+
 test('Test POST to /get endpoint', async () => {
   const res = await request(app).post('/get?url=http://example.com/test.html')
 

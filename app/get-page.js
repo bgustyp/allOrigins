@@ -1,16 +1,37 @@
 import { got } from './http-client.js'
 import iconv from 'iconv-lite'
+import QuickLRU from 'quick-lru'
+
+// ponytail: app-level LRU cache replaces got's built-in cache.
+// got's cache goes through cacheable-request → Keyv, whose EventManager.once()
+// wraps the listener so removeListener() silently fails — one leaked error
+// listener per request. Caching at this level avoids that code path entirely.
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const cache = new QuickLRU({ maxSize: 1000, maxAge: CACHE_TTL })
 
 export default getPage
 
-function getPage({ url, format, requestMethod, charset }) {
+function getPage({ url, format, requestMethod, charset, disableCache }) {
+  const cacheKey = `${format}:${requestMethod}:${url}:${charset || ''}`
+  if (!disableCache && cache.has(cacheKey)) return cache.get(cacheKey)
+
+  let result
   if (format === 'info' || requestMethod === 'HEAD') {
-    return getPageInfo(url)
+    result = getPageInfo(url)
   } else if (format === 'raw') {
-    return getRawPage(url, requestMethod, charset)
+    result = getRawPage(url, requestMethod, charset)
+  } else {
+    result = getPageContents(url, requestMethod, charset)
   }
 
-  return getPageContents(url, requestMethod, charset)
+  if (!disableCache) {
+    result = Promise.resolve(result).then((page) => {
+      if (!(page.status || {}).error) cache.set(cacheKey, page)
+      return page
+    })
+  }
+
+  return result
 }
 
 async function getPageInfo(url) {
