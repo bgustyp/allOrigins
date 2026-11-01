@@ -15,4 +15,4 @@ COPY . .
 ENV NODE_ENV=production
 EXPOSE 1458
 
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]

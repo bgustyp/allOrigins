@@ -57,7 +57,10 @@ for (const format of ['get', 'raw', 'json', 'info']) {
 
 app.all('/embed', embedRequest)
 
-// Root path — not allowed
+// Root path — GET/HEAD return ok for health checks, rest not allowed
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok' })
+})
 app.all('/', (_req, res) => {
   res.status(403).json({ error: 'Not allowed' })
 })

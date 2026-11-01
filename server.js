@@ -9,6 +9,11 @@ const port = process.env.PORT || 1458
 
 console.log(`Starting allOrigins v${global.AO_VERSION}`)
 const server = app.listen(port, () => console.log('Listening on', port))
+
+process.on('SIGTERM', () => {
+  server.close(() => process.exit(0))
+  server.closeIdleConnections()
+})
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(
